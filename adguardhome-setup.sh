@@ -27,7 +27,7 @@ web_port=${web_port:-3500}
 # Configuration des DNS upstream
 echo "Configuration des DNS upstream :"
 echo "1. Upstream standard (entrer les IP directement)"
-echo "2. DNS-over-TLS/QUIC (entrer un hôte, par exemple f8e629.dns.nextdns.io)"
+echo "2. DNS-over-TLS/QUIC (entrer un hôte, par exemple f8e666.dns.nextdns.io)"
 read -p "Choisissez une option (1 ou 2) : " dns_option
 
 # Validation stricte de l'entrée
