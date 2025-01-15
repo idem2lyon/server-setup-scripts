@@ -18,7 +18,9 @@ A collection of scripts to simplify and standardize server setup and configurati
 If you want to **quickly run the initial server setup script** (`init-server.sh`) from this repository, use:
 
 ```bash
-curl -s -S -L https://raw.githubusercontent.com/idem2lyon/server-setup-scripts/main/init-server.sh | sh -s -- -v
+curl -s -S -L -o init-server.sh https://raw.githubusercontent.com/idem2lyon/server-setup-scripts/main/init-server.sh
+chmod +x init-server.sh
+sudo ./init-server.sh
 ```
 Note:
         The -s flag makes curl silent.
