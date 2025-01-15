@@ -2,10 +2,10 @@
 
 A collection of scripts to simplify and standardize server setup and configuration for Debian/Ubuntu-based distributions. These scripts include:
 
-- Initial server setup (user creation, SSH hardening, basic package installation, UFW configuration)
-- WireGuard installation and configuration
-- AdGuard Home installation and configuration
-- NextDNS setup
+- **init-server.sh**: Initial server setup (user creation, SSH hardening, basic package installation, UFW firewall)
+- **wireguard-setup.sh**: (Coming soon) WireGuard installation and configuration
+- **adguardhome-setup.sh**: (Coming soon) AdGuard Home installation and configuration
+- **nextdns-setup.sh**: (Coming soon) NextDNS setup
 - ...and more to come!
 
 ## Prerequisites
@@ -13,7 +13,20 @@ A collection of scripts to simplify and standardize server setup and configurati
 - Debian/Ubuntu-based distribution (tested primarily on Ubuntu 20.04 or 22.04 LTS)
 - Root access or a user with `sudo` privileges
 
-## Getting Started
+## Quick Start
+
+If you want to **quickly run the initial server setup script** (`init-server.sh`) from this repository, use:
+
+```bash
+curl -s -S -L https://raw.githubusercontent.com/idem2lyon/server-setup-scripts/main/init-server.sh | sh -s -- -v
+    Note:
+
+        The -s flag makes curl silent.
+        The -S flag shows errors (if any).
+        The -L flag follows redirects.
+        Piping directly to sh executes the script. Use at your own risk and always verify scripts before running them if security is a concern.
+
+Alternatively, you can  : 
 
 1. **Clone the repository**:
     ```bash
