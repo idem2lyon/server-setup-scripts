@@ -5,7 +5,10 @@
 #   https://github.com/idem2lyon/server-setup-scripts/blob/main/init-server.sh
 #
 # You can install it quickly using:
-#   curl -s -S -L https://raw.githubusercontent.com/idem2lyon/server-setup-scripts/main/init-server.sh | sh -s -- -v
+#   curl -s -S -L -o init-server.sh https://raw.githubusercontent.com/idem2lyon/server-setup-scripts/main/init-server.sh
+#   chmod +x init-server.sh
+#   sudo ./init-server.sh
+
 # -----------------------------------------------------------------------------
 
 # Check if the script is run as root
