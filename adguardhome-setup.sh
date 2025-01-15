@@ -1,46 +1,41 @@
 #!/bin/bash
-#
-# -----------------------------------------------------------------------------
-# This script is available at:
-#   https://github.com/idem2lyon/server-setup-scripts/blob/main/adguardhome-setup.sh
-#
-# You can install it quickly using:
-#   curl -s -S -L -o adguardhome-setup.sh https://raw.githubusercontent.com/idem2lyon/server-setup-scripts/main/adguardhome-setup.sh
-#   chmod +x adguardhome-setup.sh
-#   sudo ./adguardhome-setup.sh
-# -----------------------------------------------------------------------------
 
-# Check if the user is root
+# Vérifier si l'utilisateur est root
 if [ "$EUID" -ne 0 ]; then
   echo "Ce script doit être exécuté en tant que root. Utilisez sudo."
   exit 1
 fi
 
-# Download AdGuard Home
+# Télécharger AdGuard Home
 echo "Téléchargement d'AdGuard Home..."
 curl -s -L -o /tmp/AdGuardHome_linux_amd64.tar.gz https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz
 
-# Extract the files
 echo "Extraction des fichiers..."
 mkdir -p /opt/adguardhome
 cd /opt/adguardhome
 tar -xzf /tmp/AdGuardHome_linux_amd64.tar.gz -C /opt/adguardhome --strip-components=1
 
-# Run the AdGuard Home installation script
+# Lancer le script d'installation d'AdGuard Home
 echo "Installation d'AdGuard Home..."
 /opt/adguardhome/AdGuardHome -s install
 
-# Interactive configuration prompts
+# Configuration interactive
 echo "Configuration d'AdGuard Home :"
 read -p "Entrez le port pour l'interface web (par défaut : 3500) : " web_port
 web_port=${web_port:-3500}
 
+# Configuration des DNS upstream
 echo "Configuration des DNS upstream :"
 echo "1. Upstream standard (entrer les IP directement)"
-echo "2. DNS-over-TLS/QUIC (entrer un hôte, par exemple f8e666.dns.nextdns.io)"
+echo "2. DNS-over-TLS/QUIC (entrer un hôte, par exemple f8e629.dns.nextdns.io)"
 read -p "Choisissez une option (1 ou 2) : " dns_option
 
-# Store chosen upstream DNS in an array
+# Validation stricte de l'entrée
+if [[ "$dns_option" != "1" && "$dns_option" != "2" ]]; then
+  echo "Option non valide. Arrêt du script."
+  exit 1
+fi
+
 upstream_dns=()
 if [ "$dns_option" == "1" ]; then
   read -p "Entrez les IP des serveurs DNS upstream, séparées par des espaces : " -a dns_ips
@@ -59,21 +54,18 @@ elif [ "$dns_option" == "2" ]; then
   if [ "$use_quic" == "o" ]; then
     upstream_dns+=("quic://$dns_host")
   fi
-else
-  echo "Option non valide. Arrêt du script."
-  exit 1
 fi
 
-# Configure DNS bootstrap
+# Configuration des DNS bootstrap
 echo "Configuration des DNS bootstrap :"
 read -p "Entrez les IP des serveurs bootstrap, séparées par des espaces (par défaut : 1.1.1.1 8.8.8.8) : " -a bootstrap_dns
 bootstrap_dns=(${bootstrap_dns[@]:-1.1.1.1 8.8.8.8})
 
-# Generate the AdGuard Home configuration file
+# Générer le fichier de configuration d'AdGuard Home
 config_file="/opt/adguardhome/AdGuardHome.yaml"
 echo "Mise à jour de la configuration dans $config_file..."
 
-cat <<EOF > "$config_file"
+cat <<EOF > $config_file
 bind_host: 0.0.0.0
 bind_port: $web_port
 dns:
@@ -98,11 +90,11 @@ log_dns_queries: false
 verbose: false
 EOF
 
-# Restart AdGuard Home to apply the changes
+# Redémarrer AdGuard Home pour appliquer les modifications
 echo "Redémarrage d'AdGuard Home pour appliquer les modifications..."
 systemctl restart AdGuardHome
 
-# Check AdGuard Home service status
+# Vérification du statut
 echo "Vérification du statut du service AdGuard Home :"
 systemctl status AdGuardHome --no-pager
 
