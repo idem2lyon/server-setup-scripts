@@ -1,5 +1,10 @@
-#!/bin/bash
-#
+################################################################################
+# Script Name: Initial Installation Script
+# Description: Installs and configures un user, vim, and essentials packages on Debian/Ubuntu.
+# Author: Mehdi HAMIDA
+# Date: 2025-01-12
+# Version: 1.0
+# License: MIT
 # -----------------------------------------------------------------------------
 # This script is available at:
 #   https://github.com/idem2lyon/server-setup-scripts/blob/main/init-server.sh
