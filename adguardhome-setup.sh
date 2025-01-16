@@ -5,7 +5,10 @@
 #   https://github.com/idem2lyon/server-setup-scripts/blob/main/adguardhome-setup.sh
 #
 # You can install it quickly using:
-#   curl -s -S -L https://raw.githubusercontent.com/idem2lyon/server-setup-scripts/main/adguardhome-setup.sh | sh -s -- -v
+#   curl -s -S -L -o adguardhome-setup.sh https://raw.githubusercontent.com/idem2lyon/server-setup-scripts/main/adguardhome-setup.sh
+#   chmod +x adguardhome-setup.sh
+#   sudo ./adguardhome-setup.sh
+
 # -----------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------
