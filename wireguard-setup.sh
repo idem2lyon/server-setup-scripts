@@ -4,7 +4,7 @@
 # Script Name: WireGuard Installation Script
 # Description: Installs and configures WireGuard VPN server on Debian/Ubuntu.
 #              Provides options to add, list, revoke clients, and reset config.
-# Author: Your Name
+# Author: Mehdi HAMIDA
 # Date: 2025-01-12
 # Version: 1.0
 # License: MIT
