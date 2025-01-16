@@ -8,7 +8,6 @@
 #   curl -s -S -L -o adguardhome-setup.sh https://raw.githubusercontent.com/idem2lyon/server-setup-scripts/main/adguardhome-setup.sh
 #   chmod +x adguardhome-setup.sh
 #   sudo ./adguardhome-setup.sh
-#!/bin/bash
 #
 
 # -----------------------------------------------------------------------------
@@ -69,9 +68,12 @@ fi
 # -----------------------------------------------------------------------------
 # INTERACTIVE PROMPTS
 # -----------------------------------------------------------------------------
+
+# Ask for web interface port
 read -p "Entrez le port pour l'interface web (par défaut : 3500) : " WEB_PORT
 WEB_PORT=${WEB_PORT:-3500}
 
+# Ask for network interface
 echo "Interfaces réseau disponibles :"
 ip -o -4 addr list | awk '{print $2, $4}' | while read -r iface addr; do
   echo "  $iface ($addr)"
@@ -80,6 +82,7 @@ echo "Par défaut, AdGuard écoutera sur 0.0.0.0 (toutes les interfaces)."
 read -p "Entrez l'interface réseau sur laquelle AdGuard doit écouter (ou laisser vide) : " BIND_IFACE
 BIND_IFACE=${BIND_IFACE:-0.0.0.0}
 
+# Upstream DNS
 echo "Configuration des DNS upstream :"
 echo "1. Upstream standard (entrer les IP directement, ex: 8.8.8.8 1.1.1.1)"
 echo "2. DNS-over-TLS/QUIC (entrer un hôte, par exemple f8e666.dns.nextdns.io)"
@@ -117,15 +120,32 @@ elif [ "$DNS_OPTION" == "2" ]; then
   fi
 fi
 
+# Bootstrap DNS
 echo "Configuration des DNS bootstrap :"
 read -p "Entrez les IP des serveurs bootstrap, séparées par des espaces (par défaut : 1.1.1.1 8.8.8.8) : " -a BOOTSTRAP_DNS
 if [ ${#BOOTSTRAP_DNS[@]} -eq 0 ]; then
   BOOTSTRAP_DNS=("1.1.1.1" "8.8.8.8")
 fi
 
-# Define admin user & hashed password (default: "admin")
+# -----------------------------------------------------------------------------
+# ADMIN PASSWORD
+# -----------------------------------------------------------------------------
+read -p "Entrez un mot de passe pour l'utilisateur admin (laisser vide pour générer) : " ADMIN_PASS
+if [ -z "$ADMIN_PASS" ]; then
+  ADMIN_PASS=$(openssl rand -hex 6)
+  echo "Mot de passe admin généré : $ADMIN_PASS"
+else
+  echo "Mot de passe admin saisi : $ADMIN_PASS"
+fi
+
+# Generate hash via the AdGuardHome binary
+ADMIN_PASSWORD_HASH=$("$BIN" --hash-password "$ADMIN_PASS" 2>/dev/null)
+if [ -z "$ADMIN_PASSWORD_HASH" ]; then
+  echo "Erreur : impossible de générer le hash du mot de passe via '$BIN --hash-password'"
+  exit 1
+fi
+
 ADMIN_USER="admin"
-ADMIN_PASSWORD_HASH='$2a$10$ryPnNoMHFBkGv1G5Vxx3L.8pHcn5ZyVVVBcxMYk5S1PCiTJ/cFZh.'
 
 # -----------------------------------------------------------------------------
 # GENERATE AdGuardHome.yaml BEFORE THE FIRST LAUNCH
@@ -209,5 +229,6 @@ systemctl status AdGuardHome --no-pager
 echo "========================================================="
 echo "AdGuard Home a été installé et configuré avec succès !"
 echo "Interface web : http://$(hostname -I | awk '{print $1}'):$WEB_PORT"
-echo "Identifiants : admin / admin (pensez à changer ce mot de passe)"
+echo "Utilisateur : admin"
+echo "Mot de passe : $ADMIN_PASS"
 echo "========================================================="
