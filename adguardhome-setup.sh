@@ -8,14 +8,12 @@
 #   curl -s -S -L -o adguardhome-setup.sh https://raw.githubusercontent.com/idem2lyon/server-setup-scripts/main/adguardhome-setup.sh
 #   chmod +x adguardhome-setup.sh
 #   sudo ./adguardhome-setup.sh
-#!/bin/bash
-#
 
 # -----------------------------------------------------------------------------
 # ENGLISH COMMENTS, FRENCH PROMPTS
 # Merges:
 #   - The "court-circuit" approach (generate AdGuardHome.yaml before first run)
-#   - The interactive questions from the second script (interface, DNS, etc.)
+#   - The interactive questions (interface, DNS, etc.)
 #   => This prevents the /install.html wizard and makes AdGuard Home fully
 #      functional with the user's chosen parameters.
 # -----------------------------------------------------------------------------
@@ -31,21 +29,30 @@ echo "Téléchargement d'AdGuard Home..."
 curl -s -L -o /tmp/AdGuardHome_linux_amd64.tar.gz \
   https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz
 
-# Extract the files
+# Extract the files (no --strip-components)
 echo "Extraction des fichiers..."
 mkdir -p /opt/adguardhome
 cd /opt/adguardhome
-tar -xzf /tmp/AdGuardHome_linux_amd64.tar.gz --strip-components=1
+tar -xzf /tmp/AdGuardHome_linux_amd64.tar.gz
+
+# If there's a subfolder named AdGuardHome, cd into it
+if [ -d "/opt/adguardhome/AdGuardHome" ]; then
+  cd AdGuardHome
+fi
+
+# Define the path to the AdGuardHome binary
+BIN="$(pwd)/AdGuardHome"
+if [ ! -f "$BIN" ] || [ ! -x "$BIN" ]; then
+  echo "Erreur : le binaire AdGuardHome est introuvable ou non exécutable dans : $BIN"
+  exit 1
+fi
 
 # -----------------------------------------------------------------------------
 # INTERACTIVE PROMPTS
 # -----------------------------------------------------------------------------
-
-# Prompt for the web interface port (default: 3500)
 read -p "Entrez le port pour l'interface web (par défaut : 3500) : " WEB_PORT
 WEB_PORT=${WEB_PORT:-3500}
 
-# Show available network interfaces and ask which to bind on
 echo "Interfaces réseau disponibles :"
 ip -o -4 addr list | awk '{print $2, $4}' | while read -r iface addr; do
   echo "  $iface ($addr)"
@@ -54,23 +61,19 @@ echo "Par défaut, AdGuard écoutera sur 0.0.0.0 (toutes les interfaces)."
 read -p "Entrez l'interface réseau sur laquelle AdGuard doit écouter (ou laisser vide) : " BIND_IFACE
 BIND_IFACE=${BIND_IFACE:-0.0.0.0}
 
-# Ask how to configure upstream DNS
 echo "Configuration des DNS upstream :"
 echo "1. Upstream standard (entrer les IP directement, ex: 8.8.8.8 1.1.1.1)"
 echo "2. DNS-over-TLS/QUIC (entrer un hôte, par exemple f8e666.dns.nextdns.io)"
 read -p "Choisissez une option (1 ou 2) : " DNS_OPTION
 
-# Validate the input
 if [[ "$DNS_OPTION" != "1" && "$DNS_OPTION" != "2" ]]; then
   echo "Option non valide. Arrêt du script."
   exit 1
 fi
 
-# Build an array of upstream DNS
 UPSTREAM_DNS=()
 if [ "$DNS_OPTION" == "1" ]; then
   read -p "Entrez les IP des serveurs DNS upstream, séparées par des espaces : " -a DNS_IPS
-  # If user enters nothing, fallback to a default
   if [ ${#DNS_IPS[@]} -eq 0 ]; then
     DNS_IPS=("8.8.8.8" "1.1.1.1")
   fi
@@ -95,25 +98,22 @@ elif [ "$DNS_OPTION" == "2" ]; then
   fi
 fi
 
-# Configure bootstrap DNS
 echo "Configuration des DNS bootstrap :"
 read -p "Entrez les IP des serveurs bootstrap, séparées par des espaces (par défaut : 1.1.1.1 8.8.8.8) : " -a BOOTSTRAP_DNS
 if [ ${#BOOTSTRAP_DNS[@]} -eq 0 ]; then
   BOOTSTRAP_DNS=("1.1.1.1" "8.8.8.8")
 fi
 
-# We define a default user "admin" with a hashed password (bcrypt).
-# For production, generate your own hash:
-#   /opt/adguardhome/AdGuardHome --hash-password "votre-mot-de-passe"
-# The example below corresponds to "admin" as plain text.
+# Define admin user & hashed password (default: "admin")
 ADMIN_USER="admin"
 ADMIN_PASSWORD_HASH='$2a$10$ryPnNoMHFBkGv1G5Vxx3L.8pHcn5ZyVVVBcxMYk5S1PCiTJ/cFZh.'
 
 # -----------------------------------------------------------------------------
 # GENERATE AdGuardHome.yaml BEFORE THE FIRST LAUNCH
 # -----------------------------------------------------------------------------
+# We'll place it in the *current* directory (where the binary is).
+CONFIG_FILE="$(pwd)/AdGuardHome.yaml"
 
-CONFIG_FILE="/opt/adguardhome/AdGuardHome.yaml"
 echo "Génération de la configuration dans $CONFIG_FILE..."
 
 cat <<EOF > "$CONFIG_FILE"
@@ -124,7 +124,7 @@ users:
   - name: $ADMIN_USER
     password: "$ADMIN_PASSWORD_HASH"
     permissions:
-      -1   # -1 => super-admin
+      -1
 
 dns:
   bind_hosts:
@@ -162,14 +162,14 @@ verbose: false
 EOF
 
 # -----------------------------------------------------------------------------
-# INSTALL AS A SERVICE (THIS WILL SKIP THE /install.html WIZARD)
+# INSTALL AS A SERVICE (SKIPPING THE /install.html WIZARD)
 # -----------------------------------------------------------------------------
 echo "Installation du service AdGuard Home (sans assistant)..."
-/opt/adguardhome/AdGuardHome -s install
+"$BIN" -s install
 
-# Adjust permissions (just in case)
-chmod 755 /opt/adguardhome
-chmod 644 /opt/adguardhome/AdGuardHome.yaml
+# Adjust permissions
+chmod 755 "$(pwd)"
+chmod 644 "$CONFIG_FILE"
 
 # -----------------------------------------------------------------------------
 # FIREWALL CONFIGURATION
@@ -194,7 +194,7 @@ fi
 # RESTART AdGuard Home TO APPLY CHANGES
 # -----------------------------------------------------------------------------
 echo "Redémarrage d'AdGuard Home..."
-systemctl restart AdGuardHome
+systemctl restart AdGuardHome || echo "Échec du redémarrage : le service est peut-être indisponible."
 
 # Check status
 echo "Vérification du statut du service AdGuard Home :"
