@@ -8,14 +8,11 @@
 #   curl -s -S -L -o adguardhome-setup.sh https://raw.githubusercontent.com/idem2lyon/server-setup-scripts/main/adguardhome-setup.sh
 #   chmod +x adguardhome-setup.sh
 #   sudo ./adguardhome-setup.sh
+#!/bin/bash
+#
 
 # -----------------------------------------------------------------------------
 # ENGLISH COMMENTS, FRENCH PROMPTS
-# Merges:
-#   - The "court-circuit" approach (generate AdGuardHome.yaml before first run)
-#   - The interactive questions (interface, DNS, etc.)
-#   => This prevents the /install.html wizard and makes AdGuard Home fully
-#      functional with the user's chosen parameters.
 # -----------------------------------------------------------------------------
 
 # Check if the user is root
@@ -24,16 +21,38 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
+# Clean up any previous partial download
+rm -f /tmp/AdGuardHome_linux_amd64.tar.gz
+
 # Download AdGuard Home
 echo "Téléchargement d'AdGuard Home..."
-curl -s -L -o /tmp/AdGuardHome_linux_amd64.tar.gz \
+curl -s -S -L -o /tmp/AdGuardHome_linux_amd64.tar.gz \
   https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz
+
+# Check if the download succeeded and file is non-empty
+if [ ! -f /tmp/AdGuardHome_linux_amd64.tar.gz ]; then
+  echo "Erreur : le fichier /tmp/AdGuardHome_linux_amd64.tar.gz n'a pas été créé."
+  exit 1
+fi
+
+# On fixe une taille minimum arbitraire (1 Mo = 1048576 octets)
+MIN_SIZE=1048576
+FILE_SIZE=$(stat -c%s /tmp/AdGuardHome_linux_amd64.tar.gz)
+
+if [ "$FILE_SIZE" -lt "$MIN_SIZE" ]; then
+  echo "Erreur : le fichier téléchargé est trop petit ($FILE_SIZE octets), probablement corrompu."
+  exit 1
+fi
 
 # Extract the files (no --strip-components)
 echo "Extraction des fichiers..."
 mkdir -p /opt/adguardhome
 cd /opt/adguardhome
 tar -xzf /tmp/AdGuardHome_linux_amd64.tar.gz
+if [ $? -ne 0 ]; then
+  echo "Erreur lors de la décompression de l'archive. Archive corrompue ?"
+  exit 1
+fi
 
 # If there's a subfolder named AdGuardHome, cd into it
 if [ -d "/opt/adguardhome/AdGuardHome" ]; then
@@ -111,9 +130,7 @@ ADMIN_PASSWORD_HASH='$2a$10$ryPnNoMHFBkGv1G5Vxx3L.8pHcn5ZyVVVBcxMYk5S1PCiTJ/cFZh
 # -----------------------------------------------------------------------------
 # GENERATE AdGuardHome.yaml BEFORE THE FIRST LAUNCH
 # -----------------------------------------------------------------------------
-# We'll place it in the *current* directory (where the binary is).
 CONFIG_FILE="$(pwd)/AdGuardHome.yaml"
-
 echo "Génération de la configuration dans $CONFIG_FILE..."
 
 cat <<EOF > "$CONFIG_FILE"
@@ -161,24 +178,17 @@ log_dns_queries: false
 verbose: false
 EOF
 
-# -----------------------------------------------------------------------------
 # INSTALL AS A SERVICE (SKIPPING THE /install.html WIZARD)
-# -----------------------------------------------------------------------------
 echo "Installation du service AdGuard Home (sans assistant)..."
 "$BIN" -s install
 
-# Adjust permissions
 chmod 755 "$(pwd)"
 chmod 644 "$CONFIG_FILE"
 
-# -----------------------------------------------------------------------------
 # FIREWALL CONFIGURATION
-# -----------------------------------------------------------------------------
 if command -v ufw > /dev/null; then
   echo "Configuration du pare-feu avec UFW..."
-  # Web port (TCP)
   ufw allow "$WEB_PORT"/tcp
-  # DNS port (53, TCP & UDP)
   ufw allow 53/tcp
   ufw allow 53/udp
 elif command -v nft > /dev/null; then
@@ -190,19 +200,12 @@ else
   echo "Aucun gestionnaire de pare-feu compatible trouvé. Configuration manuelle requise."
 fi
 
-# -----------------------------------------------------------------------------
-# RESTART AdGuard Home TO APPLY CHANGES
-# -----------------------------------------------------------------------------
 echo "Redémarrage d'AdGuard Home..."
 systemctl restart AdGuardHome || echo "Échec du redémarrage : le service est peut-être indisponible."
 
-# Check status
 echo "Vérification du statut du service AdGuard Home :"
 systemctl status AdGuardHome --no-pager
 
-# -----------------------------------------------------------------------------
-# FINAL MESSAGE
-# -----------------------------------------------------------------------------
 echo "========================================================="
 echo "AdGuard Home a été installé et configuré avec succès !"
 echo "Interface web : http://$(hostname -I | awk '{print $1}'):$WEB_PORT"
