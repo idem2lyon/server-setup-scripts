@@ -1,3 +1,5 @@
+#!/bin/bash
+
 ################################################################################
 # Script Name: Initial Installation Script
 # Description: Installs and configures un user, vim, and essentials packages on Debian/Ubuntu.
@@ -22,22 +24,26 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-# Prompt for the new username and password
-read -p "Enter the new username: " NEW_USER
-read -s -p "Enter the password for user $NEW_USER: " NEW_PASS
-echo
+# Option to create a new user
+read -p "Do you want to create a new user? (yes/no): " CREATE_USER
+if [[ "$CREATE_USER" == "yes" ]]; then
+  # Prompt for the new username and password
+  read -p "Enter the new username: " NEW_USER
+  read -s -p "Enter the password for user $NEW_USER: " NEW_PASS
+  echo
+
+  # Create the user and add them to the sudo group
+  echo "Creating user $NEW_USER and adding them to the sudo group..."
+  adduser --gecos "" $NEW_USER <<EOF
+$NEW_PASS
+$NEW_PASS
+EOF
+  usermod -aG sudo $NEW_USER
+fi
 
 # Update the system
 echo "Updating the system..."
 apt update && apt upgrade -y
-
-# Create the user and add them to the sudo group
-echo "Creating user $NEW_USER and adding them to the sudo group..."
-adduser --gecos "" $NEW_USER <<EOF
-$NEW_PASS
-$NEW_PASS
-EOF
-usermod -aG sudo $NEW_USER
 
 # Install basic packages
 echo "Installing basic packages..."
@@ -65,8 +71,10 @@ set mouse-=a
 set clipboard=unnamedplus
 EOL
 
-cp /root/.vimrc /home/$NEW_USER/.vimrc
-chown $NEW_USER:$NEW_USER /home/$NEW_USER/.vimrc
+if [[ "$CREATE_USER" == "yes" ]]; then
+  cp /root/.vimrc /home/$NEW_USER/.vimrc
+  chown $NEW_USER:$NEW_USER /home/$NEW_USER/.vimrc
+fi
 
 # Configure SSH
 echo "Configuring SSH..."
