@@ -58,6 +58,7 @@ apt install -y \
   git \
   gnupg \
   software-properties-common \
+  sudo \
   ufw \
   traceroute \
   lsof \
