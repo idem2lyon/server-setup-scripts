@@ -90,5 +90,11 @@ ufw default allow outgoing
 ufw allow ssh
 ufw enable
 
+systemctl disable systemd-resolved
+systemctl stop systemd-resolved
+rm -f /etc/resolv.conf
+dhclient
+
+
 # Confirmation
 echo "Configuration completed successfully!"
