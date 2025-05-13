@@ -97,4 +97,5 @@ dhclient
 
 
 # Confirmation
+echo "Do not forget to add user to sudo groupe :   usermod -aG sudo user"
 echo "Configuration completed successfully!"
