@@ -95,8 +95,8 @@ ufw allow OpenSSH
 ufw --force enable
 
 # HA compliant
-#systemctl disable systemd-resolved
-#systemctl stop systemd-resolved
+systemctl disable systemd-resolved
+systemctl stop systemd-resolved
 rm -f /etc/resolv.conf
 dhclient
 
