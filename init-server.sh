@@ -81,20 +81,24 @@ fi
 echo "Configuring SSH..."
 sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
 sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+# Ensure SSH is enabled and started
+systemctl enable ssh
 systemctl restart ssh
 
 # Enable UFW firewall
 echo "Configuring the UFW firewall..."
 ufw default deny incoming
 ufw default allow outgoing
+# Enable UFW firewall and allow SSH
 ufw allow ssh
-ufw enable
+ufw allow OpenSSH
+ufw --force enable
 
 # HA compliant
 #systemctl disable systemd-resolved
 #systemctl stop systemd-resolved
-#rm -f /etc/resolv.conf
-#dhclient
+rm -f /etc/resolv.conf
+dhclient
 
 
 # Confirmation
