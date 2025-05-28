@@ -89,17 +89,8 @@ systemctl restart ssh
 echo "Configuring the UFW firewall..."
 ufw default deny incoming
 ufw default allow outgoing
-# Enable UFW firewall and allow SSH
 ufw allow ssh
-ufw allow OpenSSH
-ufw --force enable
-
-# HA compliant
-systemctl disable systemd-resolved
-systemctl stop systemd-resolved
-rm -f /etc/resolv.conf
-dhclient
-
+ufw enable
 
 # Confirmation
 echo "Do not forget to add user to sudo groupe :   usermod -aG sudo user"
